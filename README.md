@@ -86,6 +86,36 @@ while there are many opcodes with varying levels of importance (some you'll almo
 
 the first one is `ldarg`, which actually encompasses a number of very similar opcodes. if in a *static* method, ldarg pushes an argument of the method onto the stack, based on the zero based index. for arguments 1-4, you have the opcodes Ldarg_0, Ldarg_1, Ldarg_2, and Ldarg_3. however, if you need to access an argument beyond the fourth one, you need to do the `Ldarg_S` opcode, and pass the index as the operand. so, if you're inside `static void Example(int number, float anotherNumber, string notANumber, string anotherNotNumber, List<object> definitelyNotANumber)`, `ldarg_1` would load the float anotherNumber onto the stack, and `ldarg_S 4` loads the list definitelyNotANumber onto the stack (4 being the operand). 
 
-things are slightly different for instance methods. an instance method is any method called on an instance of a class - so, for example, Player.Kill is an instance method. in instance methods, the first argument is the current instance, equivalent to `this`. therefore, `ldarg_0` loads the current instance onto the stack. accessing arguments is done through the usual way, except that you need to simply increment the index of the argument by one. so, if you're inside the instance method `void InstanceExample(int newNumber, string newNotNumber)` which is itself inside the class `ExampleClass`, `ldarg_0` loads the current instance of `ExampleClass` and `ldarg_1` loads the int newNumber onto the stack.
+things are slightly different for instance methods. an instance method is any method called on an instance of a class - so, for example, Player.Kill is an instance method. <ins>in instance methods, the first argument is the current instance, equivalent to `this`</ins>. therefore, `ldarg_0` loads the current instance onto the stack. accessing arguments is done through the usual way, except that you need to simply increment the index of the argument by one. so, if you're inside the instance method `void InstanceExample(int newNumber, string newNotNumber)` which is itself inside the class `ExampleClass`, `ldarg_0` loads the current instance of `ExampleClass` and `ldarg_1` loads the int newNumber onto the stack.
 
-the first of these actually comes as a pair - `call` and `callvirt`. both of these accomplish something similar - a method call.
+the second of these actually comes as a pair - `call` and `callvirt`. both of these accomplish something similar - a method call. the main difference between `call` and `callvirt` is that <ins>`call` is used to call static methods and `callvirt` is used to call `instance methods`</ins> that are inside classes. when you call an instance method using `callvirt`, the top of the stack is popped for an instance to call the method on. the technical differences between them are complicated and convoluted, but generally unnecessary to know. both of these methods are also used to call the property getter for *properties*, which brings us into our next opcode and an important distinction.
+
+in c#, there actually exists two different kinds of values inside classes. while they are both accessed through the dot operator (like `Example.ExampleValue`) in c#, when you look under the hood they are both accessed very differently. the first of these are **fields**. fields are essentially raw variables inside of classes, defined without any accessors (get or set). so all of these are fields:
+```csharp
+public class LotsOfFields
+{
+    public o string Constant = "Hello!";
+    public int Number;
+    private readonly float H = 1;
+    private static List<float> List = new();
+}
+```
+when we want to load a field onto the stack, we use `ldfld` for fields on instances and `ldsfld` for fields on static classes, passing a reference to the field as our operand. for our LotsOfFields class, we would need to do `ldfld LotsOfFields.Number` to access `Number` and `ldsfld LotsOfFields.List` to access `List`. just like with `callvirt` `ldfld` pops the top of the stack is popped for an instance to call the method on
+
+the other type of values inside classes are properties. properties wrap around a field and expose accessors (get and set). properties are defined with accessors. so, all of these are properties:
+```csharp
+public class LotsOfProperties
+{
+    public string String { get; } = "Hello!";
+    public int Number => Math.Max(1, 2); // equivalent to public int Number { get { return Math.Max(1, 2); } }
+    public float BigFloat
+    {
+        get
+        {
+            return 595159140f;
+        }
+        set => BigFloat = value; // equivalent to set { BigFloat = value }
+    }
+}
+```
+the big difference is that when you're accessing a property, you're actually calling a method that returns a value. so, we have to use `call` or `callvirt` (for properties on static classes and instances respectively). so to access String in our example, we do `callvirt get_String()`. something important to note is that this won't actually be how we'll access properties when we write our transpiler using harmony (since we can't directly reference get/set accessors), this is just how it's done in actual il. 
