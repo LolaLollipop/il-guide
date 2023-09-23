@@ -29,6 +29,7 @@ the index is where in the list of instructions this specific instruction is loca
 in all of this, data needs a way to be passed around. unlike c#, this isn't done through named variables. instead, data is passed around through the **stack**, also referred to as the evaluation stack (it means the same thing). the stack is a last in, first out data structure capable of holding any type - in other words, <ins>if you add something and then immediately get an item from the stack, the item that you just added would be returned</ins>. most opcodes interact with the stack in some way, either taking a certain number of values from it ("popping"), adding a certain number of values to it ("pushing"), or doing both. 
 > [!NOTE]
 > throughout this guide, i'll also be referring to adding something to the top of the stack as pushing something onto the stack and loading something onto the stack. these terms are all interchangeable!
+
 a c# implementation of the stack can visualized like this:
 ```csharp
 public class Stack<T>
