@@ -93,7 +93,11 @@ the first one is `ldarg`, which actually encompasses a number of very similar op
 
 things are slightly different for instance methods. an instance method is any method called on an instance of a class - so, for example, Player.Kill is an instance method. <ins>in instance methods, the first argument is the current instance, equivalent to `this`</ins>. therefore, `ldarg_0` loads the current instance onto the stack. accessing arguments is done through the usual way, except that you need to simply increment the index of the argument by one. so, if you're inside the instance method `void InstanceExample(int newNumber, string newNotNumber)` which is itself inside the class `ExampleClass`, `ldarg_0` loads the current instance of `ExampleClass` and `ldarg_1` loads the int newNumber onto the stack.
 
-the second of these actually comes as a pair - `call` and `callvirt`. both of these accomplish something similar - a method call. the main difference between `call` and `callvirt` is that <ins>`call` is used to call static methods and `callvirt` is used to call `instance methods`</ins> that are inside classes. when you call an instance method using `callvirt`, the top of the stack is popped for an instance to call the method on. the technical differences between them are complicated and convoluted, but generally unnecessary to know. both of these methods are also used to call the property getter for *properties*, which brings us into our next opcode and an important distinction.
+the second of these actually comes as a pair - `call` and `callvirt`. both of these accomplish something similar - a method call. the main difference between `call` and `callvirt` is that <ins>`call` is used to call static methods and `callvirt` is used to call `instance methods`</ins> that are inside classes. when you call an instance method using `callvirt`, the top of the stack is popped for an instance to call the method on. the technical differences between them are complicated and convoluted, but generally unnecessary to know. 
+
+when using either of these methods, the arguments for the method are popped from the stack in order from left to right. so if you called `void function DoSomething(int number, float decimalNumber, string funkyString)`, first number, then decimalNumber, and finally funkyString would be popped from the stack. if the method has a return value, then it's pushed onto the stack. 
+
+both of these methods are also used to call the property getter for *properties*, which brings us into our next opcode and an important distinction.
 
 in c#, there actually exists two different kinds of values inside classes. while they are both accessed through the dot operator (like `Example.ExampleValue`) in c#, when you look under the hood they are both accessed very differently. the first of these are **fields**. fields are essentially raw variables inside of classes, defined without any accessors (get or set). so all of these are fields:
 ```csharp
@@ -124,4 +128,39 @@ public class LotsOfProperties
 }
 ```
 the big difference is that when you're accessing a property, you're actually calling a method that returns a value. so, we have to use `call` or `callvirt` (for properties on static classes and instances respectively). so to access String in our example, we do `callvirt get_String()`. something important to note is that this won't actually be how we'll access properties when we write our transpiler using harmony (since we can't directly reference get/set accessors), this is just how it's done in actual il. 
-    
+## time to ACTUALLY write the transpiler
+our mission throughout this will be to <ins>make it so that tutorials can hear the scp chat</ins>. 
+
+first, we need to set up harmony for our plugin. if you already know how to do this, you can skip this step.
+
+somewhere, in your plugin's main class, define a Harmony class. field or property doesn't matter. you don't have to create it yet - you can do that when the plugin is enabled. you'll also want to create a harmony id, which is a unique string used to identify your plugin when patching and unpatching. so, something like:
+```csharp
+public sealed class ExamplePlugin : PluginConfig
+{
+    // ...
+    // ...
+    private Harmony _harmony;
+    private string HarmonyId { get; } = "This can be whatever you want!";
+    // ...
+}
+```
+then, in OnEnabled for the plugin, you'll want to create the new Harmony instance (if you haven't already), providing the HarmonyId as a parameter. then, call the PatchAll() method on the harmony instance. make sure that you're running UnpatchAll() in your OnDisabled, too. so, something like:
+```csharp
+public sealed class ExamplePlugin : PluginConfig
+{
+    // ...
+    private Harmony _harmony;
+    private string HarmonyId { get; } = "This can be whatever you want!";
+    // ...
+    public override void OnEnabled() {
+        _harmony = new(HarmonyId);
+        _harmony.PatchAll()
+        // ...
+    }
+    public override void OnDisabled() {
+        _harmony.UnpatchAll()
+        // ...
+    }
+}
+```
+
