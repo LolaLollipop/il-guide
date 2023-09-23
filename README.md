@@ -24,7 +24,25 @@ below you can see an example of an instruction. each instruction in IL has an in
 
 ![instruction](https://github.com/Ruemena/il-guide/assets/135553058/a6f936c2-8b9e-4563-bc8b-4f645bf86295)
 
-
-
 the index is where in the list of instructions this specific instruction is located. the offset acts as a reference to the specific instruction (this will become important later).  the **opcode** is probably the most important part. this says what specific instruction will be happening. for example, the opcode to say to add two numbers is `add`. often, you'll need to pass parameters to the opcode. for example, if you wanted to call a method using the `call` opcode, you would need to pass a reference to a method. this is done through the operand - somewhat analogous to providing arguments to a method call. 
 
+in all of this, data needs a way to be passed around. unlike c#, this isn't done through named variables. instead, data is passed around through the **stack**. the stack is a last in, first out data structure capable of holding any type - in other words, if you add something and then immediately get an item from the stack, the item that you just added would be returned. a c# implementation of the stack can visualized like this:
+```csharp
+public class Stack<T>
+{
+    private List<T> items = new();
+
+    public void Push(T item)
+    {
+        items.Insert(0, item);
+    }
+
+    public T Pop()
+    {
+        var item = items[0];
+        items.RemoveAt(0);
+        return item;
+    }
+}
+```
+with this example, the stack used in IL is a Stack<object>, since it can hold anything. there's something important to note about the stack - there's no way to get the item from the top of the stack without removing it (unless you use the Dup opcode). more advanced ways of manipulating the stack will be discussed later.
