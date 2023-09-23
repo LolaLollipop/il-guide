@@ -45,4 +45,4 @@ public class Stack<T>
     }
 }
 ```
-with this example, the stack used in IL is a Stack<object>, since it can hold anything. there's something important to note about the stack - there's no way to get the item from the top of the stack without removing it (unless you use the Dup opcode). more advanced ways of manipulating the stack will be discussed later.
+with this example, the stack used in IL is a `Stack<object>`, since it can hold anything. there's something important to note about the stack - there's no way to get the item from the top of the stack without removing it (unless you use the Dup opcode). more advanced ways of manipulating the stack will be discussed later.
