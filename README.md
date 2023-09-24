@@ -95,7 +95,7 @@ things are slightly different for instance methods. an instance method is any me
 
 the second of these actually comes as a pair - `call` and `callvirt`. both of these accomplish something similar - a method call. the main difference between `call` and `callvirt` is that <ins>`call` is used to call static methods and `callvirt` is used to call `instance methods`</ins> that are inside classes. when you call an instance method using `callvirt`, the top of the stack is popped for an instance to call the method on. the technical differences between them are complicated and convoluted, but generally unnecessary to know. 
 
-when using either of these methods, the arguments for the method are popped from the stack in order from left to right. so if you called `void function DoSomething(int number, float decimalNumber, string funkyString)`, first number, then decimalNumber, and finally funkyString would be popped from the stack. if the method has a return value, then it's pushed onto the stack. 
+when using either of these methods, the arguments for the method are popped from the stack in order from left to right. so if you called `void function DoSomething(int number, float decimalNumber, string funkyString)`, first number, then decimalNumber, and finally funkyString would be popped from the stack. if the method has a return value, then it's pushed onto the stack. something important to note is that in il, default values for methods don't exist - you *must* provide a value for every parameter. 
 
 both of these methods are also used to call the property getter for *properties*, which brings us into our next opcode and an important distinction.
 
