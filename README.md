@@ -334,3 +334,42 @@ public static class MyFirstTranspiler {
 }
 ```
 we're done! this was a long journey, but we've successfully created our very first transpiler. 
+## supplemental info
+### advanced stack manipulation
+there are two opcodes which do nothing but interact with the stack. the first is `dup`. `dup` duplicates the first item on the stack - popping it and then pushing it on twice. so doing `dup` with this stack:
+```
+- Top -
+int 1
+int 3
+float 5
+string "Hello!"
+```
+would result in
+```
+- Top -
+int 1
+int 1
+int 3
+float 5
+string "Hello!"
+```
+the other is `pop`. `pop` pops the first item on the stack and does nothing with it. so 
+```
+- Top -
+int 1
+int 3
+float 5
+string "Hello!"
+```
+turns into 
+```
+- Top -
+int 3
+float 5
+string "Hello!"
+```
+this particularly useful if you're not interested with the return value of a call or need to get rid of everything before `ret`. 
+### return labels and branching statements
+il's equivalent of if statements works a bit differently than c#. to create one, a combination of return labels and branching statements. 
+
+return labels are references to a specific instruction, which can be jumped to. they're similar to `goto` statements in c#, if you've seen those.
