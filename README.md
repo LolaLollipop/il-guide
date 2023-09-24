@@ -164,3 +164,173 @@ public sealed class ExamplePlugin : PluginConfig
 }
 ```
 
+all done? great! the next step will be to figure out what we need to patch. we don't need to do this blindly, luckily. there are many tools that you use to look at the decompiled code of the game. for this, we'll be using dnspy. again, if you already know how to do this, you can skip this step. first, you'll want to get the latest release of dnspy from [here](https://github.com/dnSpy/dnSpy/releases/latest). i assume you already know how to download something, so we can skip that. open up dnspy, and go to File -> Open. open up the Assembly-CSharp.dll for sl - you can get it from one of your server folders by going to SCPSL_Data/Managed/, among other places.
+
+a big part of transpilers is figuring out *what* you need to patch to accomplish your goal. this mostly involves just looking around for a while. we'll skip the frustration of that. we'll first want to search by doing `Ctrl + Shift + K`. search for `VoiceTransceiver.ServerReceiveMessage`. this method determines if a player should receive a voice message and the channel that the voice message should be sent on - perfect for our situation!
+
+we'll want to create a new *static* class somewhere - you can name it whatever you'd like. put a HarmonyPatch attribute on the class (right above the definition), passing the type of the VoiceTransceiver class and the name of the VoiceTransceiver.ServerReceiveMessage. so, it should like:
+```csharp
+[HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
+internal static class MyFirstTranspiler {
+
+}
+```
+we'll now need a transpiler method. this is a static method that takes in the original il instructions as an `IEnumerable<CodeInstruction>` (with the parameter name `instructions` and returns new the instructions, also as an `IEnumerable<CodeInstruction>`. now, at this point, you have two options:
+- name the method whatever you'd like and add the `[HarmonyTranspiler]` attribute
+- name the method `Transpiler` exactly
+you can also do both of these, if you really want to. it should look something like this:
+```csharp
+[HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
+public static class MyFirstTranspiler {
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+
+    }
+    // OR
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> ACoolTranspiler(IEnumerable<CodeInstruction> instructions) {
+
+    }
+}
+```
+sometimes, you may see `ILGenerator generator` included in the parameters for the transpiler method. this becomes important with branching statements, but for now you don't have to worry about it.
+
+one of the neat things about transpilers is that there is a ton of ways to make one. the way discussed in this is the one most commonly used (especially for exiled), but don't fret if you see one that's different (or make one that's different). our first step will be making a list from these instructions. we want this to be a `List<CodeInstruction>`, as codeinstruction is the class that represent each il instruction. however, unlike what you'd might expect, we're not just going to create a new instance of `List<CodeInstrucition>` ourselves. instead, we'll be 'renting' a list from `NorthwoodLib.Pools`'s ListPool. this is mostly for when we want to create a temporary list, especially from another list. there are a few advantages to this compared to just creating one ourselves, mostly being that it allows for better management and resource allocation. for now, don't worry too much about it. so, it should look something like this:
+```csharp
+List<CodeInstruction> newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);
+```
+our next step will be figuring out where to put our new instructions. go back to dnspy, and hover over the ServerReceiveMessage method. right click and click "Edit IL Instructions". we won't actually be editing il instructions using this - this just lets us look at the il of the code. you can probably see that there's a TON of code - way too difficult to sort through in il. close the il view, and look back at your method. we want to be able to edit the channel, setting it to `RoundSummary` (which is identical to scp chat for people) if the player listening is a Tutorial and the speaker is an SCP. there's a specific line of code that's perfect for this:
+```csharp
+VoiceChatChannel voiceChatChannel2 = voiceRole2.VoiceModule.ValidateReceive(msg.Speaker, voiceChatChannel);
+```
+this method validates the channel - if the listener shouldn't be able to hear the message, it sets it to None (which will not send the message to the listener's client). so, we want to put it right below this, as that means we can add new functionality to it. hover over this specific line, and right click -> Edit IL Instructions again. the problem right now is that we don't know where specifically in il we should put our new instructions. we'll want to do it after the ValidateReceive message is called, but before it's popped off the stack. there's one specific instruction that's a perfect fit for this: `callvirt VoiceModuleBase.ValidateReceive` (the second to last line). since the VoiceChatChannel is still on the stack if we insert right after this, we can edit it easily. 
+
+while we now know where we want to put our new instructions, we can't just add our new instructions to wherever dnspy says the index of the instruction is. this would basically guarantee our transpiler would break if a single new instruction is inserted, as we'd be inserting in the wrong place. instead, we will want to dynamically find this specific instruction and add an offset. this isn't as hard as it sounds, luckily. we'll use the FindIndex method on the list, which takes in a method that decides whether or not it's our match and returns the index of that. we'll want to check if the opcode of the instruction is `callvirt` and if the operand is `VoiceModuleBase.ValidateReceive`. since the operand can be anything, however, we'll have to cast it to MethodInfo (which represents the metadata and reference for a certain method call) and use the Method method to a create a new MethodInfo for a call to `VoiceModuleBase.ValidateReceive`. if these two are equal, it's our instruction! so, we'll do something like:
+```csharp
+int index = newInstructions.FindIndex(instruction =>
+            instruction.opcode == OpCodes.Callvirt
+            && (MethodInfo)instruction.operand == Method(typeof(VoiceModuleBase), nameof(VoiceModuleBase.ValidateReceive)));
+```
+you'll see a lot of the XXXXX(typeof(XXXXX), nameof(XXXX)) syntax, as it allows for us to pass the metadata and reference to a certain field, property, method, etc. then, we'll want to add 1 to the index, so that our code executes right after the instruction. it should look something like:
+```csharp
+int index = newInstructions.FindIndex(instruction =>
+            instruction.opcode == OpCodes.Callvirt
+            && (MethodInfo)instruction.operand == Method(typeof(VoiceModuleBase), nameof(VoiceModuleBase.ValidateReceive)));
+index += 1;
+```
+now we know where to put our instructions! we'll want to insert a list (technically an array) of our new instructions. fortunately, `List` has an `InsertRange` method that we can use to easily insert multiple items into a list. it takes in an index and a new `IEnumerable`. so we can do something like:
+```csharp
+newInstructions.InsertRange(index, new[]
+{
+ // our instructions go here!
+});
+```
+right now, this inserts nothing into the list of instructions. unsurprisingly, this won't do anything. first, however, we actually have to figure out what we need. real quick, let's make a method that takes in the voice message's channel (from the ValidateReceive), the speaker for the voice message, and the current listener, returning `RoundSummary` if the channel is SCP chat, the speaker is an scp, and the listener is a Tutorial. something like this:
+```csharp
+private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
+    if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+}
+```
+make sure this method is static, otherwise it won't work! now, we have this method, but we need to provide all of the parameters to it. let's go back to dnspy. if you look at where the code is being executed, VoiceChatChannel is already on the top of the stack, so we don't have to worry about writing new code for it. how are we going to get the speaker and listener, though? this is where it's a good idea to look around the il code for the original method for something that does something similar to what we're doing. we can see that it's getting the speaker for the message by doing msg.Speaker, and msg is one of the arguments for the method. if we look at the code for the line 
+```csharp
+IVoiceRole voiceRole = msg.Speaker.roleManager.CurrentRole as IVoiceRole;
+```
+we can see that it does
+```
+ldarg.1
+ldfld (ReferenceHub) VoiceMessage.Speaker
+```
+let's dissect this a little bit. as discussed previously, `ldarg` loads one of the arguments onto the stack - since this is a static method and it's `ldarg_1`, it's going to load the second argument for this method onto the stack. and, since Speaker is a field, we pop the VoiceMessage and load the speaker of the VoiceMessage onto the stack by doing `ldfld VoiceMessage.Speaker`. we now have to convert this into CodeInstructions. go back to our InsertRange, and let's create two new CodeInstructions. 
+the first is pretty simple:
+```csharp
+new CodeInstruction(OpCodes.Ldarg_1),
+```
+the second, however, is slightly more complicated. we have to pass a reference to a field as an operand. the second parameter for the CodeInstruction constructor is the operand. remember when we did `Method(typeof(VoiceModuleBase), nameof(VoiceModuleBase.ValidateReceive))`? we can do that for fields, too! it should look something like:
+```csharp
+new CodeInstruction(OpCodes.Ldarg_1),
+new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
+```
+all that's left is to get the listener, and then call our own method. once again we can turn to the c# code and look at the il for a hint on how to do this. let's look at:
+```csharp
+IVoiceRole voiceRole2 = referenceHub.roleManager.CurrentRole as IVoiceRole;
+```
+`referenceHub` in this scenario represents our listener. in il, we can see that it does:
+```
+ldloc.3
+ldfld ReferenceHub.RoleManager
+```
+`ldloc` is a new opcode that we're going to discuss. while the stack is the only way to pass data to opcodes, there are other ways to store data inside il. one of the most common is through **local variables**. inside a method there are 256 different 'slots' for local variables, and just like arguments are indexed at 0. we can store a value into a local variable by doing `stloc_0`, `stloc_1`, `stloc_2`, or `stloc_3` for local variables 1-4 and `stloc_s` with the index as the operand for other local variables. this will pop the value on the top of the stack and put it into that slot. then, in a similar fashion, we can access it by doing `ldloc_0`, `ldloc_1`, `ldloc_2`, or `ldloc_3` for local variables 1-4 and `ldloc_s` with the index as the operand for other local variables. this will load the local's variable onto the stack. like `ldarg`, it won't remove the local variable's value, so you can do it as much you'd like. 
+
+this makes sense, as if you look right above, you can see that it does
+```
+call HashSet<ReferenceHub>.get_Current()
+stloc_3
+```
+in other words, it's storing the current reference hub as the third local variable. when we get to our instructions, it's fortunately still there, so we can use it easily! we now do:
+```csharp
+new CodeInstruction(OpCodes.Ldarg_1),
+new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
+new CodeInstruction(OpCodes.Ldloc_3),
+```
+all that's left is to call our function. since our TutorialHearSCPs method is static, we'll use `call`. and, just like how we created a MethodInfo using harmony's Method method to check to see if the instruction was a match, we're going to do that to pass it as an operand to our call opcode. this will look something like:
+```csharp
+new CodeInstruction(OpCodes.Ldarg_1),
+new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
+new CodeInstruction(OpCodes.Ldloc_3),
+new CodeInstruction(OpCodes.Call, Method(typeof(MyFirstTranspiler), nameof(MyFirstTranspiler.TutorialHearSCPs)))
+```
+we're all done creating our new instructions! all that's left is a bit of cleanup and returning the values. our code right now looks like:
+```csharp
+[HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
+public static class MyFirstTranspiler {
+    private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
+        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+    }
+
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+        List<CodeInstruction> newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);
+        int index = newInstructions.FindIndex(instruction =>
+            instruction.opcode == OpCodes.Callvirt
+            && (MethodInfo)instruction.operand == Method(typeof(VoiceModuleBase), nameof(VoiceModuleBase.ValidateReceive)));
+        index += 1;
+
+        newInstructions.InsertRange(index, new[]
+        {
+            new CodeInstruction(OpCodes.Ldarg_1),
+            new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
+            new CodeInstruction(OpCodes.Ldloc_3),
+            new CodeInstruction(OpCodes.Call, Method(typeof(VoicePatch), nameof(CheckChat)))
+        });
+    }
+}
+```
+now we'll want to return `newInstructions`, since it has all of our instructions we just added. we can't just do return, as we have to clean up the ListPool<CodeInstruction>. instead, we do `yield return` for each instruction in `newInstructions`. `yield return` returns one item to create a new iterator. you can kind of imagine this like creating a new IEnumerable, adding a new item to it every time `yield return` is called, and then returning that new IEnumerable. it's slightly more complicated than that, but that's irrelevant for this. after we do that, we then return our List to the pool, cleaning it up. after all of that, our code looks like this:
+```csharp
+[HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
+public static class MyFirstTranspiler {
+    private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
+        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+    }
+
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+        List<CodeInstruction> newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);
+        int index = newInstructions.FindIndex(instruction =>
+            instruction.opcode == OpCodes.Callvirt
+            && (MethodInfo)instruction.operand == Method(typeof(VoiceModuleBase), nameof(VoiceModuleBase.ValidateReceive)));
+        index += 1;
+
+        newInstructions.InsertRange(index, new[]
+        {
+            new CodeInstruction(OpCodes.Ldarg_1),
+            new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
+            new CodeInstruction(OpCodes.Ldloc_3),
+            new CodeInstruction(OpCodes.Call, Method(typeof(VoicePatch), nameof(CheckChat)))
+        });
+
+        foreach (CodeInstruction instruction in newInstructions)
+            yield return instruction;
+
+        ListPool<CodeInstruction>.Shared.Return(newInstructions);
+    }
+}
+```
+we're done! this was a long journey, but we've successfully created our very first transpiler. 
