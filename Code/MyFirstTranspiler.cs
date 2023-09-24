@@ -1,7 +1,7 @@
 [HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
 public static class MyFirstTranspiler {
     private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
-        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+        if (listener.GetRoleId() == RoleTypeId.Tutorial && speaker.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
     }
 
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
