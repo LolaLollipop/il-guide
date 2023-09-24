@@ -1,5 +1,5 @@
 # il-guide
-
+this is a very gentle tutorial on how to interact with il and write transpilers. while some abstracted or more uncommon ideas are explained, i assume that you have at least a decent level of background knowledge of c#.
 ## first steps
 
 ### introduction to IL and transpilers
