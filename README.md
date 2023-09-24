@@ -194,7 +194,7 @@ public static class MyFirstTranspiler {
 ```
 sometimes, you may see `ILGenerator generator` included in the parameters for the transpiler method. this becomes important with branching statements, but for now you don't have to worry about it.
 
-one of the neat things about transpilers is that there is a ton of ways to make one. the way discussed in this is the one most commonly used (especially for exiled), but don't fret if you see one that's different (or make one that's different). our first step will be making a list from these instructions. we want this to be a `List<CodeInstruction>`, as codeinstruction is the class that represent each il instruction. however, unlike what you'd might expect, we're not just going to create a new instance of `List<CodeInstrucition>` ourselves. instead, we'll be 'renting' a list from `NorthwoodLib.Pools`'s ListPool. this is mostly for when we want to create a temporary list, especially from another list. there are a few advantages to this compared to just creating one ourselves, mostly being that it allows for better management and resource allocation. for now, don't worry too much about it. so, it should look something like this:
+one of the neat things about transpilers is that there is a ton of ways to make one. the way discussed in this is the one most commonly used (especially for exiled), but don't fret if you see one that's different (or make one that's different). our first step will be making a list from these instructions. we want this to be a `List<CodeInstruction>`, as codeinstruction is the class that represent each il instruction. however, unlike what you'd might expect, we're not just going to create a new instance of `List<CodeInstruction>` ourselves. instead, we'll be 'renting' a list from `NorthwoodLib.Pools`'s ListPool. this is mostly for when we want to create a temporary list, especially from another list. there are a few advantages to this compared to just creating one ourselves, mostly being that it allows for better management and resource allocation. for now, don't worry too much about it. so, it should look something like this:
 ```csharp
 List<CodeInstruction> newInstructions = ListPool<CodeInstruction>.Shared.Rent(instructions);
 ```
@@ -308,7 +308,7 @@ now we'll want to return `newInstructions`, since it has all of our instructions
 [HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
 public static class MyFirstTranspiler {
     private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
-        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoicefChatChannel.RoundSummary; else return channel;
     }
 
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
