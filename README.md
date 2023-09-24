@@ -298,7 +298,7 @@ public static class MyFirstTranspiler {
             new CodeInstruction(OpCodes.Ldarg_1),
             new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
             new CodeInstruction(OpCodes.Ldloc_3),
-            new CodeInstruction(OpCodes.Call, Method(typeof(VoicePatch), nameof(CheckChat)))
+            new CodeInstruction(OpCodes.Call, Method(typeof(MyFirstTranspiler), nameof(TutorialHearSCPs)))
         });
     }
 }
@@ -323,7 +323,7 @@ public static class MyFirstTranspiler {
             new CodeInstruction(OpCodes.Ldarg_1),
             new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
             new CodeInstruction(OpCodes.Ldloc_3),
-            new CodeInstruction(OpCodes.Call, Method(typeof(VoicePatch), nameof(CheckChat)))
+            new CodeInstruction(OpCodes.Call, Method(typeof(MyFirstTranspiler), nameof(TutorialHearSCPs)))
         });
 
         foreach (CodeInstruction instruction in newInstructions)
