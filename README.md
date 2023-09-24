@@ -227,7 +227,7 @@ newInstructions.InsertRange(index, new[]
 right now, this inserts nothing into the list of instructions. unsurprisingly, this won't do anything. first, however, we actually have to figure out what we need. real quick, let's make a method that takes in the voice message's channel (from the ValidateReceive), the speaker for the voice message, and the current listener, returning `RoundSummary` if the channel is SCP chat, the speaker is an scp, and the listener is a Tutorial. something like this:
 ```csharp
 private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
-    if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+    if (listener.GetRoleId() == RoleTypeId.Tutorial && speaker.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
 }
 ```
 make sure this method is static, otherwise it won't work! now, we have this method, but we need to provide all of the parameters to it. let's go back to dnspy. if you look at where the code is being executed, VoiceChatChannel is already on the top of the stack, so we don't have to worry about writing new code for it. how are we going to get the speaker and listener, though? this is where it's a good idea to look around the il code for the original method for something that does something similar to what we're doing. we can see that it's getting the speaker for the message by doing msg.Speaker, and msg is one of the arguments for the method. if we look at the code for the line 
@@ -283,7 +283,7 @@ we're all done creating our new instructions! all that's left is a bit of cleanu
 [HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
 public static class MyFirstTranspiler {
     private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
-        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
+        if (listener.GetRoleId() == RoleTypeId.Tutorial && speaker.IsSCP()) return VoiceChatChannel.RoundSummary; else return channel;
     }
 
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
@@ -308,7 +308,7 @@ now we'll want to return `newInstructions`, since it has all of our instructions
 [HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
 public static class MyFirstTranspiler {
     private static VoiceChatChannel TutorialHearSCPs(VoiceChatChannel channel, ReferenceHub speaker, ReferenceHub listener) {
-        if (speaker.GetRoleId() == RoleTypeId.Tutorial && listener.IsSCP()) return VoicefChatChannel.RoundSummary; else return channel;
+        if (listener.GetRoleId() == RoleTypeId.Tutorial && speaker.IsSCP()) return VoicefChatChannel.RoundSummary; else return channel;
     }
 
     private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
