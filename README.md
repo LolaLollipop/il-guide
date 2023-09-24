@@ -316,6 +316,7 @@ public static class MyFirstTranspiler {
         int index = newInstructions.FindIndex(instruction =>
             instruction.opcode == OpCodes.Callvirt
             && (MethodInfo)instruction.operand == Method(typeof(VoiceModuleBase), nameof(VoiceModuleBase.ValidateReceive)));
+
         index += 1;
 
         newInstructions.InsertRange(index, new[]
@@ -372,4 +373,27 @@ this particularly useful if you're not interested with the return value of a cal
 ### return labels and branching statements
 il's equivalent of if statements works a bit differently than c#. to create one, a combination of return labels and branching statements. 
 
-return labels are references to a specific instruction, which can be jumped to. they're similar to `goto` statements in c#, if you've seen those.
+return labels are references to a specific instruction in the list, which can be jumped to by an opcode. this allows you to create instructions that are only executed if a certain condition is met, or go back to a previous instruction to form a loop, among other uses. they're similar to `goto` statements in c#, if you've seen those. recall earlier when i mentioned the `ILGenerator generator` parameter that could be included in transpilers. the primary purpose of that is to create these return labels. to create a return label, before you insert your instructions, you'll want to do:
+```csharp
+Label returnLabel = generator.DefineLabel();
+```
+you can add a return label to an instruction in two main ways. firstly, if you're adding a label to an instruction you've written, you'll want to add `.WithLabels()` to the new statement, and pass the previously created label. for example: 
+```csharp
+new CodeInstruction(OpCodes.Pop).WithLabels(returnLabel),
+```
+alternatively, you can add a label at an existing index by indexing your new instructions and adding a label. 
+```csharp
+newInstructions[newInstructions.Count - 1].labels.Add(returnLabel);
+
+newInstructions[index - 3].labels.Add(returnLabel);
+```
+there are a variety of opcodes that deal with return labels. these are identifiable by the "b" placed in front of their name. these opcodes take in a return label as the operand and will jump to it if a criteria is met. let's take a look at an example:
+```
+0 | 0000 | call bool AClass.Something()
+1 | 0001 | brfalse 3 (000B) call
+2 | 0006 | call void AClass.ConditionalThing()
+3 | 000B | call void AClass.OtherThing()
+```
+in this example, we first call `AClass.Something()`. if the return value is false, we go to `AClass.OtherThing()` and skip an instruction. however, if it's not false (i.e. true), we call `AClass.ConditionalThing()`. note that in both scenarios `AClass.OtherThing()` is called. 
+
+branching statements are particularly useful for creating events and other scenarions where you may want to stop the original flow of execution. you can skip to the very last instruction - which will always be `ret` (stopping the method and returning the top of the stack).
