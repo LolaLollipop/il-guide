@@ -14,7 +14,7 @@ the problem is that since the code is compiled into IL and no longer is c#, you 
 however, in order to write our first transpiler, we first must understand the basics of il.
 
 ### IL basics
-structually, il is similar to most other programming languages. <ins>all of the instructions are in a list, and are read top to bottom</ins>. 
+structually, il is similar to most other programming languages. <ins>it is composed of a series of instructions, which are read top to bottom</ins>. 
 
 for example, the following c# code:
 ![Csharp](https://github.com/Ruemena/il-guide/assets/135553058/10e965fb-41c4-4ea8-851e-ac33b399e9eb)
