@@ -381,7 +381,7 @@ string "Hello!"
 ```
 this particularly useful if you're not interested with the return value of a call or need to get rid of everything before `ret`. 
 ### return labels and branching statements
-il's equivalent of if statements works a bit differently than c#. to create one, a combination of return labels and branching statements. 
+il's equivalent of if statements works a bit differently than c#. to create one, we use a combination of return labels and branching statements. 
 
 return labels are references to a specific instruction in the list, which can be jumped to by an opcode. this allows you to create instructions that are only executed if a certain condition is met, or go back to a previous instruction to form a loop, among other uses. they're similar to `goto` statements in c#, if you've seen those. recall earlier when i mentioned the `ILGenerator generator` parameter that could be included in transpilers. the primary purpose of that is to create these return labels. to create a return label, before you insert your instructions, you'll want to do:
 ```csharp
