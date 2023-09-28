@@ -178,7 +178,7 @@ all done? great! the next step will be to figure out what we need to patch. we d
 
 a big part of transpilers is figuring out *what* you need to patch to accomplish your goal. this mostly involves just looking around for a while. we'll skip the frustration of that. we'll first want to search by doing `Ctrl + Shift + K`. search for `VoiceTransceiver.ServerReceiveMessage`. this method determines if a player should receive a voice message and the channel that the voice message should be sent on - perfect for our situation!
 
-we'll want to create a new *static* class somewhere - you can name it whatever you'd like. put a HarmonyPatch attribute on the class (right above the definition), passing the type of the VoiceTransceiver class and the name of the VoiceTransceiver.ServerReceiveMessage. so, it should like:
+we'll want to create a new *static* class somewhere - you can name it whatever you'd like. put a HarmonyPatch attribute on the class (right above the definition), passing the type of the VoiceTransceiver class and the name of the VoiceTransceiver.ServerReceiveMessage. so, it should look like:
 ```csharp
 [HarmonyPatch(typeof(VoiceTransceiver), nameof(VoiceTransceiver.ServerReceiveMessage))]
 internal static class MyFirstTranspiler {
