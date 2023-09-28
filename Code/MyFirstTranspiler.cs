@@ -13,7 +13,7 @@ public static class MyFirstTranspiler {
 
         newInstructions.InsertRange(index, new[]
         {
-            // VoiceChannel = TutorialHearSCPs(voiceChatChannel2, msg.Speaker, referenceHub)
+            // voiceChatChannel2 = TutorialHearSCPs(voiceChatChannel2, msg.Speaker, referenceHub)
             new CodeInstruction(OpCodes.Ldarg_1),
             new CodeInstruction(OpCodes.Ldfld, Field(typeof(VoiceMessage), nameof(VoiceMessage.Speaker))),
             new CodeInstruction(OpCodes.Ldloc_3),
