@@ -1,5 +1,9 @@
 # il-guide
 this is a very gentle tutorial on how to interact with il and write transpilers. while some abstracted or more uncommon ideas are explained, i assume that you have at least a decent level of background knowledge of c#.
+
+other helpful resources: 
+- [microsoft's list of opcodes](https://learn.microsoft.com/en-us/dotnet/api/system.reflection.emit.opcodes?view=net-7.0): this provides a comprehensive list of all opcodes and the names that you use for them. the pages are pretty technical so not the best for beginners
+- [sharplab.io](https://sharplab.io/#v2:C4LglgNgNAJiDUAfAAgJgIwFgBQyDMABGgQMIEDeOB1RhyALAQLIAUAlBVTQL47dA===) compiles c# code to il in real time, which can give you an idea of what you need to do to accomplish a goal in il. 
 ## first steps
 
 ### introduction to IL and transpilers
