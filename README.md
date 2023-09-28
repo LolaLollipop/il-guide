@@ -84,7 +84,7 @@ int second = (int)stack.Pop();
 stack.Push(first + second);
 ```
 now that we have an understanding of the stack, we can discuss some of the most important and common opcodes so that we can create our first transpiler. 
-### REVIEW!!
+#### REVIEW!!
 - il is composed of a series of instructions
 - each instruction has an index, an offset (reference to it), opcode (saying what it does), and sometimes an operand (fixed parameters)
 - data is passed around in a stack that contains any type - a series of values where when an item is added it's put on the top and becomes the first item to be removed
@@ -132,6 +132,12 @@ public class LotsOfProperties
 }
 ```
 the big difference is that when you're accessing a property, you're actually calling a method that returns a value. so, we have to use `call` or `callvirt` (for properties on static classes and instances respectively). so to access String in our example, we do `callvirt get_String()`. something important to note is that this won't actually be how we'll access properties when we write our transpiler using harmony (since we can't directly reference get/set accessors), this is just how it's done in actual il. 
+#### REVIEW!!!!
+- ldarg_X loads an argument/parameter 0-3 for a method, ldarg_S (index) loads an argument/parameter at any index
+- in instance methods ldarg_0 loads the current instance, equivalent to `this`
+- we use call to call static methods, and callvirt to call instance methods (popping the instance from the stack)
+- fields have no accessors (get/set), but properties do
+- we use lfdld for instance fields (popping the instance from the stack) and ldsfld for static fields
 ## time to ACTUALLY write the transpiler
 our mission throughout this will be to <ins>make it so that tutorials can hear the scp chat</ins>. 
 
@@ -401,3 +407,5 @@ there are a variety of opcodes that deal with return labels. these are identifia
 in this example, we first call `AClass.Something()`. if the return value is false, we go to `AClass.OtherThing()` and skip an instruction. however, if it's not false (i.e. true), we call `AClass.ConditionalThing()`. note that in both scenarios `AClass.OtherThing()` is called. 
 
 branching statements are particularly useful for creating events and other scenarions where you may want to stop the original flow of execution. you can skip to the very last instruction - which will always be `ret` (stopping the method and returning the top of the stack).
+### accessing propertygetters and propertysetters
+as mentioned previously, we can't just pass `get_Property` as an operand to call and do everything else normally. instead, we have to change `Method(typeof(ClassName), nameof(ClassName.get_Property)` to `PropertyGetter(typeof(ClassName), nameof(ClassName.Property)`. you can also do  `PropertySetter(typeof(ClassName), nameof(ClassName.Property)`.
