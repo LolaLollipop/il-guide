@@ -9,6 +9,7 @@ other resources:
 
 ## introduction to CIL
 ### what even is CIL?
-you're probably familiar with compiling C# code. when you press build on a plugin, it generates a dll containing bytecode, which is a non-human readable format that will later be read and executed. this format is called common intermediate language (CIL, though often shorted to just IL), and when your plugin is loaded, it (usually) converts this into machine code, or instructions that your hardware knows how to handle. that's where the "intermediate" part comes from: its between a language like C# and machine code.
+you're probably familiar with compiling C# code. when you press build on a plugin, it generates a dll containing bytecode, which is a non-human readable format that will later be read and executed. 
+this format is called common intermediate language (CIL, though often shorted to just IL), and when your plugin is loaded, it (usually) converts this into machine code, or instructions that your hardware knows how to handle. that's where the "intermediate" part comes from: its between a language like C# and machine code.
 
 ### the virtual execution system
