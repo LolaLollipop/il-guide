@@ -29,7 +29,13 @@ while c# has a wide variety of primitives (basic data types like ints and string
 - `long`, made up of 8 bytes (i)
 - `float`, made up of 4 bytes (r4)
 - `double`, made up of 8 bytes (r8)
-  many opcodes deal with these types, so it's good to know them. it's also important to know that if a primitive is smaller than one of these types, it'll be *widened* into them. so if you use a byte, it'll actually only ever be stored on the stack as an int
+many opcodes deal with these types, so it's good to know them. it's also important to know that if a primitive is smaller than one of these types, it'll be *widened* into them. so if you use a byte, it'll actually only ever be stored on the stack as an int.
+
+if we want to push one of these values onto the stack, CIL provides opcodes to do so, each starting with ldc (load constant).
+- for `int`s 0-8, we can use the opcodes `ldc.i4.X`, where X represents the number to push onto the stack. for example, to load 4 as an int onto the stack, we can do `ldc.i4.4`.
+- to push -1 onto the stack, you can use the `ldc.i4.m1` instruction.
+- for other positive `int`s, you can use the opcode `ldc.i4` and then have the `int` you want to push onto the stack as the operand.
+- to push a `float`, `double`, or `long`, you can use `ldc.r4`, `ldc.r8`, and `ldc.i8` respectively, with the number as the operand.
 ### tying it together
 so far, we know instructions, the stack, and primitives of il. let's combine them! here's some very simple cil code.
 ```cs
@@ -39,8 +45,8 @@ Console.WriteLine(Math.Max(pi, goldenRatio));
 ```
 now, let's see this in il and walk through it step by step. the left represents the index (in the list of instructions, represented as hexadecimal), the middle is the opcode, and the right is the operand.
 ```
-0 | ldc_r4_0 | 3.14159
-1 | ldc_r4_0 | 1.61803
+0 | ldc.r4 | 3.14159
+1 | ldc.r4 | 1.61803
 2 | call     | Math.Max(float, float)
 3 | call     | Console.WriteLine(float)
 ```
