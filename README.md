@@ -36,6 +36,8 @@ if we want to push one of these values onto the stack, CIL provides opcodes to d
 - to push -1 onto the stack, you can use the `ldc.i4.m1` instruction.
 - for other positive `int`s, you can use the opcode `ldc.i4` and then have the `int` you want to push onto the stack as the operand.
 - to push a `float`, `double`, or `long`, you can use `ldc.r4`, `ldc.r8`, and `ldc.i8` respectively, with the number as the operand.
+
+something important to note is that in CIL, `bool`s are represented as `int`s (0 being false and 1 being true). additionally, enums are represented as their underlying type. by default, this is `int`.
 ### tying it together
 so far, we know instructions, the stack, and primitives of il. let's combine them! here's some very simple cil code.
 ```cs
