@@ -61,3 +61,24 @@ step by step, our stack after each instruction looks like:
 ```
 #### peeking at il yourself
 if you haven't already downloaded a tool like [dnSpy](https://github.com/dnSpy/dnSpy), now is a great time to do so. assuming you have dnSpy, you can look at the IL of any method by hovering over the code of the method and clicking "Edit IL Instructions." from here you can take a look at behind the scenes of any method. at this point, i recommend taking a look at a simple method and pick out what you can understand.
+## more fundamentals 
+by now, you should hopefully have a good grasp on the stack, instructions, and a couple opcodes. this part is where where things get slightly more confusing, as you can no longer rely on c# hiding away niches for you.
+### more with methods
+earlier, i mentioned that `call` was used for caling *static* methods. for calling instance methods (i.e. non-static methods), you can use `callvirt`. the "virt" in `callvirt` stands for virtual, and indicates that it factors in overrides (methods don't actually have to be declared virtual to be called by it). notably, callvirt pops the instance to call the method on, and then pops the arguments of the method. so, in cil, this:
+```cs
+list.Add(5);
+```
+might look like this:
+```
+// assuming is already on the stack
+0 | ldc.i4.5 |
+1 | callvirt | List<int>.Add
+```
+
+now, to access the arguments of the currently executing method, you can use one of the `ldarg` opcodes. similar to `ldc.i4`, there's a few different ways to access the argument at a specific index (in the order they are declared). arguments are zero-indexed, so:
+- for the first, second third, and fourth arguments, you can use `ldarg.0`, `ldarg.1`, `ldarg.2`, and `ldarg.3`, respectively.
+- for any arguments with an index less than 256, you can use `ldarg.s`, with the index as the operand. this method is slightly more efficient because of how cil is stored.
+- if you somehow need to access an argument outside of that range, you can use `ldarg`, also with the index as the operand.
+> [!NOTE]  
+> you'll often see opcodes that end with `.s`. this is called the *short form*. these opcodes have a single byte as an operand, as opposed to their longer forms, which can reduce the file size and speed up the IL being converted to machine code. these are not aliases!
+something important to note is that for instance methods, **the first argument (`ldarg.0`) will be the current instance, basically equivalent to `this`**. the normal declared arguments will be effectively shifted to the right and have their index incremented.
