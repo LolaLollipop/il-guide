@@ -76,9 +76,11 @@ might look like this:
 ```
 
 now, to access the arguments of the currently executing method, you can use one of the `ldarg` opcodes. similar to `ldc.i4`, there's a few different ways to access the argument at a specific index (in the order they are declared). arguments are zero-indexed, so:
-- for the first, second third, and fourth arguments, you can use `ldarg.0`, `ldarg.1`, `ldarg.2`, and `ldarg.3`, respectively.
-- for any arguments with an index less than 256, you can use `ldarg.s`, with the index as the operand. this method is slightly more efficient because of how cil is stored.
+- for the first, second third, and fourth arguments, you can use `ldarg.0`, `ldarg.1`, `ldarg.2`, and `ldarg.3` (without any operands), respectively.
+- for any arguments with an index less than 256, you can use `ldarg.s`, with the index as the operand.
 - if you somehow need to access an argument outside of that range, you can use `ldarg`, also with the index as the operand.
+
 > [!NOTE]  
 > you'll often see opcodes that end with `.s`. this is called the *short form*. these opcodes have a single byte as an operand, as opposed to their longer forms, which can reduce the file size and speed up the IL being converted to machine code. these are not aliases!
+
 something important to note is that for instance methods, **the first argument (`ldarg.0`) will be the current instance, basically equivalent to `this`**. the normal declared arguments will be effectively shifted to the right and have their index incremented.
