@@ -84,3 +84,24 @@ now, to access the arguments of the currently executing method, you can use one 
 > you'll often see opcodes that end with `.s`. this is called the *short form*. these opcodes have a single byte as an operand, as opposed to their longer forms, which can reduce the file size and speed up the IL being converted to machine code. these are not aliases!
 
 something important to note is that for instance methods, **the first argument (`ldarg.0`) will be the current instance, basically equivalent to `this`**. the normal declared arguments will be effectively shifted to the right and have their index incremented.
+
+let's take a look at an example:
+```cs
+public class ClassWithTwoMethods
+{
+    public void DoSomething(string stringParam, int anotherParam, int yetAnotherParm, List<int> oneMoreParam, StringBuilder justKiddingAnother)
+    {
+        // body omitted
+    } 
+
+    public static bool DoSomethingStatically(int intInStaticMethod, string stringInStaticMethod)
+    {
+        // body omitted
+    } 
+}
+```
+for DoSomething, `ldarg.0` would be `ClassWithTwoMethods`, `ldarg.1` would be `int` (`anotherParam`), `ldarg.2` would also be `int` (yetAnotherParm), `ldarg.3` would be `List<int>`, and `ldarg.s 4` would be `StringBuilder`. inside of DoSomethingStatically, `ldarg.0` would be `int` and `ldarg.1` would be string.
+### locals
+the biggest issue with the stack is that reordering it is very difficult. if you have variables that are consistently used, it becomes very difficult to just keep everything on the stack and do nothing but push and pop to ensure that what you currently want is on the top of the stack. it would be very nice if there was a way to store things similar to a normal C# variable, so that you can use it at any time without a complicated series of instructions.
+
+now, the stack is the only way of passing data between instructions. but it's far from the only way to store data in CIL code. instead, you can use local variables. these are typed "slots" that you can store values in and load the value later. if they sound exactly like C# variables, they should. it should be noted that all local variables are declared by data present in the method's CIL, not by any opcodes.
