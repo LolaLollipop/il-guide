@@ -101,7 +101,91 @@ public class ClassWithTwoMethods
 }
 ```
 for DoSomething, `ldarg.0` would be `ClassWithTwoMethods`, `ldarg.1` would be `int` (`anotherParam`), `ldarg.2` would also be `int` (yetAnotherParm), `ldarg.3` would be `List<int>`, and `ldarg.s 4` would be `StringBuilder`. inside of DoSomethingStatically, `ldarg.0` would be `int` and `ldarg.1` would be string.
+
+one more thing: the `ret` opcode. this is basically identical to `return` in c#, with a few caveats. firstly, the last instruction of every method body must be `ret`, even if they don't return a value[^1]. secondly, if the method returns a value, that must be the only thing on the stack when a `ret` is encountered; otherwise, the stack must be empty when `ret` is encountered.
+### branches
+branches are how you perform logic like if statements. they're a set of opcodes that can "jump" to another instruction, often conditionally. "jumping" essentially sets the currently executing instruction to a different one and continues the code flow as usual from that instruction. this all branch opcodes are identified by `br` at the start, and most have a short form (only capable of jumping to instrutions at most 127 instructions away). the actual operand of a branch opcode as in cil is an offset (for example, 50 would jump to the instruction 50 instructions ahead), but for clarity and ease of use we will represent it as the index of the instruction to jump to (as does dnspy and harmony).
+
+let's take a look at an example:
+```cs
+public static void WorldMessage(bool hello)
+{
+    if (hello)
+    {
+        Console.WriteLine("Hello, world");
+    }
+    else
+    {
+        Console.WriteLine("Goodbye, world");
+    }
+}
+```
+the il of this could look something like:
+```
+0 | ldarg.0   |
+1 | brfalse.s | 5
+2 | ldstr     | "Hello, world"
+3 | call      | Console.WriteLine
+4 | ret       | 
+5 | ldstr     | "Goodbye, world"
+6 | call      | Console.WriteLine
+7 | ret       |
+```
+`brfalse.s` here is the short form of `brfalse`. essentially, it pops a value from the stack: if the value is `false` (if a bool), `null` (if a reference), or `0` (if a primitive number), it jumps to the provided instruction (in our case, instruction at index 5). otherwise, it continues executing as normal. as you might expect, there's also a `brtrue.s` and `br.true`, branching if the value is `true` (if a bool), not `null`, (if a reference), or not `0` (if a primitive number).
+
+another important branching instruction that you might encounter is `br` (or its short form, `br.s`). this instruction unconditionally (i.e. always) jumps to the given instruction. while this might seem useless, it's often a convenient way to prevent extremely tangled control flow logic.
+
+finally, there's an extremely important caveat for branches. somewhat similar to `ret`, if a branch pops a value from the stack (e.g. `brfalse`), that value must be the only thing on the stack; otherwise (e.g. `br`), there must be nothing on the stack. this also means that you can't jump to an instruction with different types on the stack. this means that we *can't* rewrite our `WorldMessage` method like this:
+```
+0 | ldarg.0   |
+1 | brfalse.s | 4
+2 | ldstr     | "Hello, world"
+3 | br.s      | 6
+4 | ldstr     | "Goodbye, world"
+6 | call      | Console.WriteLine
+7 | ret       |
+```
 ### locals
 the biggest issue with the stack is that reordering it is very difficult. if you have variables that are consistently used, it becomes very difficult to just keep everything on the stack and do nothing but push and pop to ensure that what you currently want is on the top of the stack. it would be very nice if there was a way to store things similar to a normal C# variable, so that you can use it at any time without a complicated series of instructions.
 
-now, the stack is the only way of passing data between instructions. but it's far from the only way to store data in CIL code. instead, you can use local variables. these are typed "slots" that you can store values in and load the value later. if they sound exactly like C# variables, they should. it should be noted that all local variables are declared by data present in the method's CIL, not by any opcodes.
+now, the stack is the only way of passing data between instructions. but it's far from the only way to store data in CIL code. instead, you can use local variables. these are typed "slots" that you can store values in and load the value later. if they sound exactly like C# variables, they should. it should be noted that all local variables are declared by data present in the method's CIL, not by any opcodes. this notably means that a local variable will always be the same type, no matter where you are in the method body.
+
+each local variable is referenced by the specific index of that variable. to pop a value from the stack and store it in a local variable, you can use `stloc`, with the index of the local variable is the operand. to push a value from a local variable onto the stack, you can use `ldloc` where the operand is expectedly the local variable's index. note that `ldloc` does not clear the local variable: you can store a value in there and `ldloc` it multiple times. just like `ldarg`, there are a few specialized variants of `stloc` and `ldloc`:
+- for the first, second, third, and fourth local, you can use `ldloc.0`/`stloc.0`, `ldloc.1`/`stloc.1`, `ldloc.2`/`stloc.2`, and `ldloc.3`/`stloc.3` (without any operands), respectively.
+- for any locals with an index less than 256, you can use `ldloc.s`/`stloc.s`, with the index as the operand.
+- otherwise you can use the regular `ldloc`/`stloc`, also with the index as the operand.
+
+let's go back to our `WorldMessage` method. if we REALLY want to make sure that we only have one `Console.WriteLine`, we can rewrite the code so that it does this:
+```
+0 | ldarg.0   |
+1 | brfalse.s | 5
+2 | ldstr     | "Hello, world"
+3 | stloc.0   |
+4 | br.s      | 7
+5 | ldstr     | "Goodbye, world"
+6 | stloc.0   |
+7 | ldloc.0   |
+8 | call      | Console.WriteLine
+9 | ret       |
+```
+this is basically equivalent to this c# code:
+```csharp
+public static void WorldMessage(bool hello)
+{
+    string msg;
+
+    if (hello)
+    {
+        msg = "Hello, world";
+    }
+    else
+    {
+        msg = "Goodbye, world";
+    }
+
+    Console.WriteLine(msg);
+}
+```
+[^1]: this is kind of incorrect: there are a few opcodes that are also valid as being the last instruction, notably `throw` to throw an error.
+
+
