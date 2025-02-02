@@ -189,7 +189,7 @@ public static void WorldMessage(bool hello)
 }
 ```
 ### fields
-before we write a transpiler, the last thing we need to go over is storing values field and loading the value from them. if you don't know what a field is, or the difference between a field and a property, read below.
+before we write a transpiler, the last thing we need to go over is storing values to fields and loading their value. if you don't know what a field is, or the difference between a field and a property, read below.
 <details>
 <summary>fields</summary>
 fields are essentially just how classes and structs store data. the most basic definition of a field looks something like this:
