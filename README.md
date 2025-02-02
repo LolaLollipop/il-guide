@@ -188,6 +188,69 @@ public static void WorldMessage(bool hello)
     Console.WriteLine(msg);
 }
 ```
+### fields
+before we write a transpiler, the last thing we need to go over is storing values field and loading the value from them. if you don't know what a field is, or the difference between a field and a property, read below.
+<details>
+<summary>fields</summary>
+fields are essentially just how classes and structs store data. the most basic definition of a field looks something like this:
+
+```csharp
+public class Message 
+{
+    public string text = "hello";
+    public string color;
+}
+```
+    
+properties are essentially methods of a class that can be called using the same syntax as fields (`x.y` and `x.y = z`). they're often used to represent data that is dynamically calculated or to offer more control over who can set/get a value. for example, here is an example of using a property (`FormattedText` is the property):
+
+```csharp
+public class Message
+{
+    private string text = "hello";
+    private string color;
+
+    public string FormattedText 
+    {
+        get
+        {
+            return $"<color={color}>{text}</color>";
+        }
+    }
+}
+```
+the `get` here represents an accessor method. this basically declares a hidden method that runs the code within the get accesor and returns that value. whenever we call `message.FormattedText`. there can also be a set accesor that has a special `value` keyword representing the new value (the one on the right-hand side of `x.y = z`), looking something like this :
+
+```csharp
+public class Message
+{
+    private string text = "hello";
+    private string color;
+
+    public string Text
+    {
+        get     
+        {
+            return text;
+        }
+        private set
+        {
+            text = value;
+        }
+    }
+}
+```
+
+there's a variety of ways that properties can be declared. `string Property { get; private set; }` = "example"` generates a hidden field with two accesors, one of which (the set accessor) is private. you can also use `=>`, generating a get accesor; `int Property => example + 5` is equivalent to `int Property { get { return example + 5; } }`. finally, we can also use the `=>` shorthand for property accessor, so `int Property { get => example + 5; }` is also equivalent to that.
+
+while the difference between properties and fields might seem minor, for the purposes of il, they work very differently. properties are accessed through `call`/`callvirt`, whereas we have to use special opcodes for fields. additionally, properties can be overriden, whereas fields cannot.
+</details>
+
+storing/loading works like the following. note that all four of these opcodes take in the field as the operand.
+- to load from a non-static field, we use `ldfld`, which pops an instance of a class/struct from the stack and then loads that class/struct's value of the field onto the stack
+- to store to a non-static field, we use `stfld`, which pops an instance of a class/struct and then a value to store to that class/struct's field
+- to load from a static field, we use `ldsfld`, which just loads the field's value onto the stack
+- to store to a static field, we use `stfld`, which pops the value and stores it into the field
 [^1]: this is kind of incorrect: there are a few opcodes that are also valid as being the last instruction, notably `throw` to throw an error.
 
 
