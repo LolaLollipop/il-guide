@@ -250,7 +250,7 @@ storing/loading works like the following. note that all four of these opcodes ta
 - to load from a non-static field, we use `ldfld`, which pops an instance of a class/struct from the stack and then loads that class/struct's value of the field onto the stack
 - to store to a non-static field, we use `stfld`, which pops an instance of a class/struct and then a value to store to that class/struct's field
 - to load from a static field, we use `ldsfld`, which just loads the field's value onto the stack
-- to store to a static field, we use `stfld`, which pops the value and stores it into the field
+- to store to a static field, we use `stsfld`, which pops the value and stores it into the field
 [^1]: this is kind of incorrect: there are a few opcodes that are also valid as being the last instruction, notably `throw` to throw an error.
 
 
